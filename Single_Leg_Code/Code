@@ -1,1 +1,7 @@
 #hi
+int x;
+int y;
+int z;
+int tibia_len = 10;
+int femur_len = 7;
+
