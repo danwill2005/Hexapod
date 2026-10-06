@@ -1,7 +1,20 @@
 #hi
-int x;
-int y;
-int z;
-int tibia_len = 10;
-int femur_len = 7;
+#include <math.h>
+#include <Servo.h>
+// library for Servo motors
+// library for data communication for servo motors
 
+float x;
+float y;
+float z;
+float tibia_len = 10;
+float femur_len = 7;
+
+void setup{
+Servo.begin(9600);
+}
+
+//function for initial leg set up
+void Initial_Leg_Setup(double X, double Y, double Z){}
+
+void loop{}
