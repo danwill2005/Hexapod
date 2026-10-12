@@ -6,8 +6,9 @@
 float x;
 float y;
 float z;
-float tibia_len = 10;
-float femur_len = 7;
+#define TIBIA_LEN 10;
+#define FEMUR_LEN 7;
+#define COXA_LEN 3;
 Servo MyServo;
 int ServoPin = ??;
 // sets the pin number for the servo motor
@@ -37,3 +38,5 @@ void loop{
 
 
 }
+
+
