@@ -1,7 +1,7 @@
 #include <math.h>
-#include <Servo.h>
+#include <SCServo.h>
 // library for Servo motors
-// library for data communication for servo motors
+// library for mathematical functions
 
 float x;
 float y;
@@ -11,6 +11,11 @@ float femur_len = 7;
 Servo MyServo;
 int ServoPin = ??;
 // sets the pin number for the servo motor
+
+// define default angles for the servos
+home_coxa = 90;
+home_femur = 60;
+home_tibia = 120;
 
 
 
