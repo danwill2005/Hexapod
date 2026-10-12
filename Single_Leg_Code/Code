@@ -1,4 +1,3 @@
-#hi
 #include <math.h>
 #include <Servo.h>
 // library for Servo motors
@@ -9,12 +8,27 @@ float y;
 float z;
 float tibia_len = 10;
 float femur_len = 7;
+Servo MyServo;
+int ServoPin = ??;
+// sets the pin number for the servo motor
+
+
+
 
 void setup{
 Servo.begin(9600);
+MyServo.attach(ServoPin);
 }
 
 //function for initial leg set up
-void Initial_Leg_Setup(double X, double Y, double Z){}
+void Initial_Leg_Setup(double X, double Y, double Z){
 
-void loop{}
+
+
+}
+
+void loop{
+
+
+
+}
