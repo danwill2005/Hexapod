@@ -6,6 +6,11 @@
 float x;
 float y;
 float z;
+int J2L=70;
+int J3L=100;
+int L=sqrt(z*z+y*y);
+int J3=acos((J2L*J2L+J3L*J3L-L*L)/(2*J2L*J3L));
+int B= acos((L*L+J2L*J2L-J3L*J3L)/(2*));
 #define TIBIA_LEN 10;
 #define FEMUR_LEN 7;
 #define COXA_LEN 3;
