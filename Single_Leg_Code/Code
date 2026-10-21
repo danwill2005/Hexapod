@@ -2,9 +2,9 @@
 #include <SCServo.h> // library for Servo motors
 
 //define part lengths
-#define TIBIA_LEN 10;
-#define FEMUR_LEN 7;
-#define COXA_LEN 3;
+#define TIBIA_LEN 100;
+#define FEMUR_LEN 70;
+#define COXA_LEN 30;
 
 //define serial pins for ESP32. GPIO16 is set as input and GPIO17 as output
 #define S_RXD 16
@@ -19,21 +19,9 @@ int home_coxa = 90;
 int home_femur = 60;
 int home_tibia = 120;
 
-
-
-
-//Please comment this, I don't know what it does
-int J2L=70;
-int J3L=100;
-int L=sqrt(z*z+y*y);
-int J3=acos((J2L*J2L+J3L*J3L-L*L)/(2*J2L*J3L));
-int B= acos((L*L+J2L*J2L-J3L*J3L)/(2*));
-
-
-
-
 //function prototype for inverse kinematics (IK)
 void calculateIK(float x, float y, float z);
+
 //function prototype for conversion function;
 int degrees_to_signal(float degrees)
 
@@ -75,7 +63,12 @@ void loop{
 
 //Inverse kinematics function. NEEDS WRITING
 void calculateIK(float x, float y, float z){
-//annoying maths goes here
+//annoying maths goes here, needs checking over
+int J2L=FEMUR_LEN;
+int J3L=TIBIA_LEN;
+int L=sqrt(z*z+y*y);
+int J3=acos((J2L*J2L+J3L*J3L-L*L)/(2*J2L*J3L));
+int B= acos((L*L+J2L*J2L-J3L*J3L)/(2*));
 
 
 //once calculated, positions can be written straight to servo here rather than sending elsewhere
