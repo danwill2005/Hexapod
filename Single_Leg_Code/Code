@@ -6,15 +6,18 @@
 #define FEMUR_LEN 7;
 #define COXA_LEN 3;
 
+//define serial pins for ESP32. GPIO16 is set as input and GPIO17 as output
+#define S_RXD 16
+#define S_TXD 17
+
 //create a servo controller object called legServo
 SMS_STS legServo;
 
-int ServoPin = ??;  // sets the pin number for the servo motor
 
 // define default angles for the servos
-home_coxa = 90;
-home_femur = 60;
-home_tibia = 120;
+int home_coxa = 90;
+int home_femur = 60;
+int home_tibia = 120;
 
 
 
@@ -36,6 +39,11 @@ int degrees_to_signal(float degrees)
 
 void setup{
 Serial.begin(9600);
+//initialize serial2 on ESP32
+Serial2.begin(1000000, SERIAL_8N1, S_RXD, S_TXD);
+
+//attach serial2 to the servo
+legServo.pSerial = &Serial2
 
 //move to home position
 Initial_Leg_Setup();
