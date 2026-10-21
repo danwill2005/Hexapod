@@ -19,7 +19,7 @@ home_tibia = 120;
 
 
 
-//PLEASE COMMENT THIS
+//Please comment this, I don't know what it does
 int J2L=70;
 int J3L=100;
 int L=sqrt(z*z+y*y);
@@ -31,13 +31,16 @@ int B= acos((L*L+J2L*J2L-J3L*J3L)/(2*));
 
 //function prototype for inverse kinematics (IK)
 void calculateIK(float x, float y, float z);
-
+//function prototype for conversion function;
+int degrees_to_signal(float degrees)
 
 void setup{
 Serial.begin(9600);
 
 //move to home position
 Initial_Leg_Setup();
+//let leg stay in home position for 2 secs after setup sequence
+delay(2000);
 }
 
 
@@ -47,24 +50,34 @@ void Initial_Leg_Setup(){
 legServo.WritePos(1, home_coxa, 0, 0);
 legServo.WritePos(2, home_femur, 0, 0);
 legServo.WritePos(3, home_tibia, 0, 0);
+
+//here we can get it to do some basic initialisation movement
+
+
 }
 
 
-
+//main loop. everything should come back to here
 void loop{
-
+//I guess we program it to walk in here? is that the initial goal
 
 
 }
 
 
-//Inverse kinematics function
+//Inverse kinematics function. NEEDS WRITING
 void calculateIK(float x, float y, float z){
+//annoying maths goes here
 
+
+//once calculated, positions can be written straight to servo here rather than sending elsewhere
+  legServo.WritePos(1, coxa_pos, 1000, 30);
+  legServo.WritePos(2, femur_pos, 1000, 30);
+  legServo.WritePos(3, tibia_pos, 1000, 30);
 }
 
 
 //function to convert the degree of desired rotation to the servo signal
 int degrees_to_signal(float degrees){
-
+return map(degrees, 0, 360, 0, 4095);
 }
