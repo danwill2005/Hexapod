@@ -1,22 +1,15 @@
-#include <math.h>
-#include <SCServo.h>
-// library for Servo motors
-// library for mathematical functions
+#include <math.h> // library for mathematical functions
+#include <SCServo.h> // library for Servo motors
 
-float x;
-float y;
-float z;
-int J2L=70;
-int J3L=100;
-int L=sqrt(z*z+y*y);
-int J3=acos((J2L*J2L+J3L*J3L-L*L)/(2*J2L*J3L));
-int B= acos((L*L+J2L*J2L-J3L*J3L)/(2*));
+//define part lengths
 #define TIBIA_LEN 10;
 #define FEMUR_LEN 7;
 #define COXA_LEN 3;
-Servo MyServo;
-int ServoPin = ??;
-// sets the pin number for the servo motor
+
+//create a servo controller object called legServo
+SMS_STS legServo;
+
+int ServoPin = ??;  // sets the pin number for the servo motor
 
 // define default angles for the servos
 home_coxa = 90;
@@ -26,17 +19,37 @@ home_tibia = 120;
 
 
 
+//PLEASE COMMENT THIS
+int J2L=70;
+int J3L=100;
+int L=sqrt(z*z+y*y);
+int J3=acos((J2L*J2L+J3L*J3L-L*L)/(2*J2L*J3L));
+int B= acos((L*L+J2L*J2L-J3L*J3L)/(2*));
+
+
+
+
+//function prototype for inverse kinematics (IK)
+void calculateIK(float x, float y, float z);
+
+
 void setup{
-Servo.begin(9600);
-MyServo.attach(ServoPin);
+Serial.begin(9600);
+
+//move to home position
+Initial_Leg_Setup();
 }
+
+
 
 //function for initial leg set up
-void Initial_Leg_Setup(double X, double Y, double Z){
-
-
-
+void Initial_Leg_Setup(){
+legServo.WritePos(1, home_coxa, 0, 0);
+legServo.WritePos(2, home_femur, 0, 0);
+legServo.WritePos(3, home_tibia, 0, 0);
 }
+
+
 
 void loop{
 
@@ -45,3 +58,13 @@ void loop{
 }
 
 
+//Inverse kinematics function
+void calculateIK(float x, float y, float z){
+
+}
+
+
+//function to convert the degree of desired rotation to the servo signal
+int degrees_to_signal(float degrees){
+
+}
