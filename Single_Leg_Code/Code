@@ -1,84 +1,294 @@
+///////////////////////////////////////////////////////////////////////////////////////////library inclusions, object declarations, and variable definitions
+
 #include <math.h> // library for mathematical functions
 #include <SCServo.h> // library for Servo motors
 
-//define part lengths
-#define TIBIA_LEN 100;
-#define FEMUR_LEN 70;
-#define COXA_LEN 30;
-
-//define serial pins for ESP32. GPIO16 is set as input and GPIO17 as output this can be changed
-#define S_RXD 16
+#define S_RXD 16 //define serial pins for ESP32. GPIO16 is set as input and GPIO17 as output this can be changed
 #define S_TXD 17
 
-//create a servo controller object called legServo
-SMS_STS legServo;
+SMS_STS legServo; //create a servo controller object called legServo
 
+const float coxa_len = 30.0;  //define part lengths
+const float femur_len = 70.0;
+const float tibia_len = 100.0;
 
-// define default angles for the servos
-int home_coxa = 90;
-int home_femur = 60;
-int home_tibia = 120;
+const int setup_speed = 1000; //servo speed and acceleration for setup sequence
+const int setup_acceleration = 30;
 
-//function prototype for inverse kinematics (IK)
-void calculateIK(float x, float y, float z);
+int walk_speed = 1000;              //servo speed and acceleration for the walk cycle
+int walk_acceleration = 30;
 
-//function prototype for conversion function;
-int degrees_to_signal(float degrees)
+const int signal_range = 4095;
 
-void setup{
-Serial.begin(9600);
-//initialize serial2 on ESP32
-Serial2.begin(1000000, SERIAL_8N1, S_RXD, S_TXD);
+const float home_coxa_degrees = 0.0; //sets parameters for servo setup positions in degrees
+const float home_femur_degrees = 0.0;
+const float home_tibia_degrees = 0.0;
+const float min_coxa_degrees = -60.0;
+const float max_coxa_degrees = 60.0;
+const float min_femur_degrees = -80.0;
+const float max_femur_degrees = 80.0;
+const float min_tibia_degrees = -150.0;
+const float max_tibia_degrees = 150.0;
 
-//attach serial2 to the servo
-legServo.pSerial = &Serial2
+constexpr int degrees_to_signal_comp(float degrees) //function to convert the degree of desired rotation to the servo signal in the compilation stage
+{ 
 
-//move to home position
-Initial_Leg_Setup();
-//let leg stay in home position for 2 secs after setup sequence
-delay(2000);
-}
-
-
-
-//function for initial leg set up
-void Initial_Leg_Setup(){
-legServo.WritePos(1, home_coxa, 0, 0);
-legServo.WritePos(2, home_femur, 0, 0);
-legServo.WritePos(3, home_tibia, 0, 0);
-
-//here we can get it to do some basic initialisation movement
-
+  int sig = (2048.0 + ((degrees / 360.0) * signal_range));
+  return constrain(sig, 0, signal_range);
 
 }
 
+const int home_coxa_sig = degrees_to_signal_comp(home_coxa_degrees); //sets parameters for servo setup positions in signal units
+const int home_femur_sig = degrees_to_signal_comp(home_femur_degrees);
+const int home_tibia_sig = degrees_to_signal_comp(home_tibia_degrees);
+const int min_coxa_sig = degrees_to_signal_comp(min_coxa_degrees);
+const int max_coxa_sig = degrees_to_signal_comp(max_coxa_degrees);
+const int min_femur_sig = degrees_to_signal_comp(min_femur_degrees);
+const int max_femur_sig = degrees_to_signal_comp(max_femur_degrees);
+const int min_tibia_sig = degrees_to_signal_comp(min_tibia_degrees);
+const int max_tibia_sig = degrees_to_signal_comp(max_tibia_degrees);
 
-//main loop. everything should come back to here
-void loop{
-//I guess we program it to walk in here? is that the initial goal
+unsigned long previousMillis = 0;  //variables set to run timings
+unsigned long waitTime = 0;
 
+enum STATE_names //names for states, for code clarity
+{
+  STATE_home_all,
+  STATE_max_coxa,
+  STATE_min_coxa,
+  STATE_home_coxa,
+  STATE_max_femur,
+  STATE_min_femur,
+  STATE_home_femur,
+  STATE_max_tibia,
+  STATE_min_tibia,
+  STATE_home_tibia,
+  STATE_idle
+};
+STATE_names STATE = STATE_home_all;  //default state
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////structs and function prototypes
+struct joint_angles 
+{
+  float coxa;
+  float femur;
+  float tibia;
+};
+
+void Run_Leg_Setup(); //function prototype for setup sequence
+joint_angles calculateIK_cartesian(float x, float y, float z); //function prototype for inverse kinematics (cartesian) (IK)
+joint_angles calculateIK_polar(float theta, float r, float z); //function prototype for inverse kinematics (polar) (IK)
+int degrees_to_signal(float degrees); //function prototype for conversion of degrees to dignal units
+void movere_crus(joint_angles target_angles); // function prototype for servo movement
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////// setup function and main loop
+
+void setup()
+{
+
+  Serial.begin(9600);
+
+  Serial2.begin(1000000, SERIAL_8N1, S_RXD, S_TXD); //initialize serial2 on ESP32
+  legServo.pSerial = &Serial2; //attach serial2 to the servo
+
+}
+
+void loop() //main loop
+{
+
+  Run_Leg_Setup(); //must run constantly. set STATE = STATE_home_all to run initialisation.
+
+  if (STATE == STATE_idle) 
+  {
+    //walking code!!!!!!
+  }
+
+}
+
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////other functions
+
+void Run_Leg_Setup() //opens setup function
+{
+
+  if (STATE == STATE_idle) //skips rest of function if state is idle
+  {
+    return; 
+  }
+
+
+  if (millis() - previousMillis >= waitTime) //checks timing
+  {
+    previousMillis = millis(); //sets new time
+
+    switch(STATE) //state machine
+    {      
+      case STATE_home_all:  //state to set all leg components to home position
+        legServo.WritePos(1, home_coxa_sig, setup_speed, setup_acceleration);
+        legServo.WritePos(2, home_femur_sig, setup_speed, setup_acceleration);
+        legServo.WritePos(3, home_tibia_sig, setup_speed, setup_acceleration);
+        waitTime = 2000;
+        STATE = STATE_max_coxa;
+        break;
+
+      case STATE_max_coxa:  //state to set coxa to max
+        legServo.WritePos(1, max_coxa_sig, setup_speed, setup_acceleration);
+        waitTime = 1000;
+        STATE = STATE_min_coxa;
+        break;
+
+      case STATE_min_coxa:  //state to set coxa to min
+        legServo.WritePos(1, min_coxa_sig, setup_speed, setup_acceleration);
+        waitTime = 1000;
+        STATE = STATE_home_coxa;
+        break;
+
+      case STATE_home_coxa:  //state to set coxa to home
+        legServo.WritePos(1, home_coxa_sig, setup_speed, setup_acceleration);
+        waitTime = 2000;
+        STATE = STATE_max_femur;
+        break;
+
+      case STATE_max_femur:  //state to set femur to max
+        legServo.WritePos(2, max_femur_sig, setup_speed, setup_acceleration);
+        waitTime = 1000;
+        STATE = STATE_min_femur;
+        break;
+
+      case STATE_min_femur:  //state to set femur to min
+        legServo.WritePos(2, min_femur_sig, setup_speed, setup_acceleration); // Fixed missing comma here
+        waitTime = 1000;
+        STATE = STATE_home_femur;
+        break;
+
+      case STATE_home_femur:  //state to set femur to home
+        legServo.WritePos(2, home_femur_sig, setup_speed, setup_acceleration);
+        waitTime = 2000;
+        STATE = STATE_max_tibia;
+        break;
+
+      case STATE_max_tibia:  //state to set tibia to max
+        legServo.WritePos(3, max_tibia_sig, setup_speed, setup_acceleration);
+        waitTime = 1000;
+        STATE = STATE_min_tibia;
+        break;
+
+      case STATE_min_tibia:  //state to set tibia to min
+        legServo.WritePos(3, min_tibia_sig, setup_speed, setup_acceleration);
+        waitTime = 1000;
+        STATE = STATE_home_tibia;
+        break;
+
+      case STATE_home_tibia:  //state to set tibia to home
+        legServo.WritePos(3, home_tibia_sig, setup_speed, setup_acceleration);
+        waitTime = 2000;
+        STATE = STATE_idle;
+        break;
+        
+      case STATE_idle:  //state to break the sequence upon it's completion
+        break;
+    }
+  }
+}
+
+
+joint_angles calculateIK_cartesian(float x, float y, float z)  //Inverse kinematics function for cartesian coordinates
+{ 
+
+  joint_angles angles;
+
+  float coxa_angle_rad = atan2(y, x);  //calculate coxa angle and horizontal distance
+  float horizontal_dist = sqrt(x*x + y*y) - coxa_len;
+
+  float L = sqrt(horizontal_dist*horizontal_dist + z*z);  //calculate tibia angle
+  if (L < 0.001) L = 0.001;
+  float tibia_cos_math = (femur_len*femur_len + tibia_len*tibia_len - L*L) / (2.0 * femur_len * tibia_len);
+  tibia_cos_math = constrain(tibia_cos_math, -1.0, 1.0);
+  float tibia_angle_rad = acos(tibia_cos_math);
+
+  float ground_angle = atan2(z, horizontal_dist);  //calculate femur angle
+  float hip_cos_math = (L*L + femur_len*femur_len - tibia_len*tibia_len) / (2.0 * L * femur_len);
+  hip_cos_math = constrain(hip_cos_math, -1.0, 1.0);
+  float hip_angle = acos(hip_cos_math);
+  float femur_angle_rad = ground_angle + hip_angle;
+
+  float femur_deg = femur_angle_rad * (180.0 / PI);  //inverts the knee joint if necessary
+  float tibia_deg = tibia_angle_rad * (180.0 / PI);
+  if (femur_deg > max_femur_degrees)
+  {
+    femur_angle_rad = ground_angle - hip_angle; 
+    femur_deg = femur_angle_rad * (180.0 / PI);
+
+    tibia_deg = -tibia_deg; //might need to be 180 - tibia_deg depending on physocal construction
+  }
+
+  angles.coxa = coxa_angle_rad * (180.0 / PI);  //send the calculated angles to the struct
+  angles.femur = femur_deg;
+  angles.tibia = tibia_deg;
+
+  return angles;
+
+}
+
+joint_angles calculateIK_polar(float theta, float r, float z)  //Inverse kinematics function for polar coordinates
+{ 
+
+  joint_angles angles;
+
+  float horizontal_dist = r - coxa_len; //calculate horizontal distance
+
+  float L = sqrt(horizontal_dist*horizontal_dist + z*z);  //calculate tibia angle
+  if (L < 0.001) L = 0.001;
+  float tibia_cos_math = (femur_len*femur_len + tibia_len*tibia_len - L*L) / (2.0 * femur_len * tibia_len);
+  tibia_cos_math = constrain(tibia_cos_math, -1.0, 1.0);
+  float tibia_angle_rad = acos(tibia_cos_math);
+
+  float ground_angle = atan2(z, horizontal_dist);  //calculate femur angle
+  float hip_cos_math = (L*L + femur_len*femur_len - tibia_len*tibia_len) / (2.0 * L * femur_len);
+  hip_cos_math = constrain(hip_cos_math, -1.0, 1.0);
+  float hip_angle = acos(hip_cos_math);
+  float femur_angle_rad = ground_angle + hip_angle;
+
+  float femur_deg = femur_angle_rad * (180.0 / PI);  //inverts the knee joint if necessary
+  float tibia_deg = tibia_angle_rad * (180.0 / PI);
+  if (femur_deg > max_femur_degrees)
+  {
+    femur_angle_rad = ground_angle - hip_angle; 
+    femur_deg = femur_angle_rad * (180.0 / PI);
+
+    tibia_deg = -tibia_deg; //might need to be 180 - tibia_deg depending on physocal construction
+  }
+
+  angles.coxa = theta;  //send the calculated angles to the struct
+  angles.femur = femur_deg;
+  angles.tibia = tibia_deg;
+
+  return angles;
 
 }
 
 
-//Inverse kinematics function. NEEDS WRITING
-void calculateIK(float x, float y, float z){
-//annoying maths goes here, needs checking over
-int J2L=FEMUR_LEN;
-int J3L=TIBIA_LEN;
-int L=sqrt(z*z+y*y);
-int J3=acos((J2L*J2L+J3L*J3L-L*L)/(2*J2L*J3L));
-int B= acos((L*L+J2L*J2L-J3L*J3L)/(2*));
+void movere_crus(joint_angles target_angles) //function to convert angles to signals and send them to servos.
+{
 
+  float safe_coxa  = constrain(target_angles.coxa,  min_coxa_degrees,  max_coxa_degrees);
+  float safe_femur = constrain(target_angles.femur, min_femur_degrees, max_femur_degrees);
+  float safe_tibia = constrain(target_angles.tibia, min_tibia_degrees, max_tibia_degrees);
 
-//once calculated, positions can be written straight to servo here rather than sending elsewhere
-  legServo.WritePos(1, coxa_pos, 1000, 30);
-  legServo.WritePos(2, femur_pos, 1000, 30);
-  legServo.WritePos(3, tibia_pos, 1000, 30);
+  int coxa_pos  = degrees_to_signal(safe_coxa);
+  int femur_pos = degrees_to_signal(safe_femur);
+  int tibia_pos = degrees_to_signal(safe_tibia);
+
+  legServo.WritePos(1, coxa_pos, walk_speed, walk_acceleration);
+  legServo.WritePos(2, femur_pos, walk_speed, walk_acceleration);
+  legServo.WritePos(3, tibia_pos, walk_speed, walk_acceleration);
+
 }
 
 
-//function to convert the degree of desired rotation to the servo signal
-int degrees_to_signal(float degrees){
-return map(degrees, 0, 360, 0, 4095);
+int degrees_to_signal(float degrees) //function to convert the degree of desired rotation to the servo signal
+{ 
+
+  int sig = (2048.0 + ((degrees / 360.0) * signal_range));
+  return constrain(sig, 0, signal_range);
+
 }
